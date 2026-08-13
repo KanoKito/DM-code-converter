@@ -70,10 +70,6 @@ var
   i: Integer;
   Line, EscapedLine, FileName: string;
 begin
-  // Настройка диалога сохранения (можно вынести в FormCreate, чтобы не дублировать)
-  SaveDialog1.Filter := 'Файлы CSV|*.csv';
-  SaveDialog1.DefaultExt := 'csv';
-
   if SaveDialog1.Execute then
   begin
     sl := TStringList.Create;
@@ -106,6 +102,10 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+// Настройка диалога сохранения
+  SaveDialog1.Filter := 'Файлы CSV|*.csv';
+  SaveDialog1.DefaultExt := 'csv';
+
   MemoOutput.Clear;
   MemoInput.Clear;
     // Запрещаем менять размеры вручную
