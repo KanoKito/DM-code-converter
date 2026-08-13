@@ -108,13 +108,10 @@ begin
 
   MemoOutput.Clear;
   MemoInput.Clear;
+  
     // Запрещаем менять размеры вручную
   BorderStyle := bsSingle;
-
-  // Скрываем кнопку "Развернуть"
   BorderIcons := BorderIcons - [biMaximize];
-
-  // Фиксируем размеры текущими значениями из инспектора объектов
   Constraints.MinWidth := Width;
   Constraints.MaxWidth := Width;
   Constraints.MinHeight := Height;
