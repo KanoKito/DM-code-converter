@@ -48,7 +48,7 @@ begin
     if InputLine = '' then Continue;
 
     {
-      Шаг 1: По стандарту GS1 первые 16 символов (01 + 14 цифр GTIN) идут слитно.
+      По стандарту GS1 первые 16 символов (01 + 14 цифр GTIN) идут слитно.
       Всё, что после них — это тело кода с идентификаторами применения (AI).
     }
     if Length(InputLine) >= 16 then
@@ -65,7 +65,6 @@ begin
     CurrPos := 1;
 
     {
-      Шаг 2: Проходим по телу кода.
       Как только находим 91 или 92, вставляем перед ними #29 (GS)
       и перепрыгиваем через сам ключ на длину его значения до следующего ключа.
     }
@@ -73,28 +72,20 @@ begin
     begin
       Next91 := PosEx('91', Body, CurrPos);
       Next92 := PosEx('92', Body, CurrPos);
-
-      // Функция PosEx из StrUtils ищет строго от указанной позиции.
-      // Если её нельзя использовать, замените эти две строки на обычный поиск:
-      // Next91 := Pos('91', Copy(Body, CurrPos, MaxInt));
-      // if Next91 > 0 then Next91 := Next91 + CurrPos - 1;
-      // ...аналогично для Next92...
-
       if (Next91 = 0) and (Next92 = 0) then
       begin
-        // Больше ключей нет, дописываем остаток тела
+
         FixedCode := FixedCode + Copy(Body, CurrPos, MaxInt);
         Break;
       end;
 
-      // Определяем, какой ключ встретился раньше
       if (Next91 > 0) and ((Next92 = 0) or (Next91 < Next92)) then
       begin
-        // Нашли 91 раньше
-        FixedCode := FixedCode + Copy(Body, CurrPos, Next91 - CurrPos) + #29 + '91';
-        CurrPos := Next91 + 2; // Пропускаем сам ключ "91"
 
-        // Ищем конец значения этого ключа (начало следующего блока)
+        FixedCode := FixedCode + Copy(Body, CurrPos, Next91 - CurrPos) + #29 + '91';
+        CurrPos := Next91 + 2;
+
+
         Next91 := PosEx('91', Body, CurrPos);
         Next92 := PosEx('92', Body, CurrPos);
         if (Next91 = 0) and (Next92 = 0) then
@@ -102,7 +93,7 @@ begin
         else if (Next91 = 0) then
           Next91 := Next92
         else if (Next92 = 0) then
-          // оставляем Next91 как есть
+
         else if Next92 < Next91 then
           Next91 := Next92;
 
@@ -111,9 +102,9 @@ begin
       end
       else
       begin
-        // Нашли 92 раньше
+
         FixedCode := FixedCode + Copy(Body, CurrPos, Next92 - CurrPos) + #29 + '92';
-        CurrPos := Next92 + 2; // Пропускаем сам ключ "92"
+        CurrPos := Next92 + 2;
 
         Next91 := PosEx('91', Body, CurrPos);
         Next92 := PosEx('92', Body, CurrPos);
@@ -122,7 +113,7 @@ begin
         else if (Next92 = 0) then
           Next92 := Next91
         else if (Next91 = 0) then
-          // оставляем Next92 как есть
+
         else if Next91 < Next92 then
           Next92 := Next91;
 
@@ -187,7 +178,7 @@ begin
   MemoOutput.Clear;
   MemoInput.Clear;
   
-    // Запрещаем менять размеры вручную
+    // Настройка формы
   BorderStyle := bsSingle;
   BorderIcons := BorderIcons - [biMaximize];
   Constraints.MinWidth := Width;
