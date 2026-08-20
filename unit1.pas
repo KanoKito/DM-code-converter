@@ -38,8 +38,8 @@ implementation
 
 procedure TForm1.ButtonConvertClickClick(Sender: TObject);
 var
-  i, GTINEnd, CurrPos, Next91, Next92: Integer;
-  InputLine, FixedCode, Body: string;
+  i, Pos91, Pos92: Integer;
+  InputLine, FixedCode: string;
 begin
   MemoOutput.Clear;
   for i := 0 to MemoInput.Lines.Count - 1 do
@@ -47,87 +47,39 @@ begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
 
-    {
-      По стандарту GS1 первые 16 символов (01 + 14 цифр GTIN) идут слитно.
-      Всё, что после них — это тело кода с идентификаторами применения (AI).
-    }
-    if Length(InputLine) >= 16 then
-    begin
-      FixedCode := Copy(InputLine, 1, 16);
-      Body := Copy(InputLine, 17, MaxInt);
-    end
-    else
-    begin
-      FixedCode := InputLine;
-      Body := '';
-    end;
+    // Ищем первый "91" начиная с 17-й позиции (после GTIN)
+    Pos91 := PosEx('91', InputLine, 17);
 
-    CurrPos := 1;
-
-    {
-      Как только находим 91 или 92, вставляем перед ними #29 (GS)
-      и перепрыгиваем через сам ключ на длину его значения до следующего ключа.
-    }
-    while CurrPos <= Length(Body) do
+    if Pos91 > 0 then
     begin
-      Next91 := PosEx('91', Body, CurrPos);
-      Next92 := PosEx('92', Body, CurrPos);
-      if (Next91 = 0) and (Next92 = 0) then
+      // Ищем первый "92" ПОСЛЕ "91"
+      Pos92 := PosEx('92', InputLine, Pos91 + 2);
+
+      if Pos92 > 0 then
       begin
-
-        FixedCode := FixedCode + Copy(Body, CurrPos, MaxInt);
-        Break;
-      end;
-
-      if (Next91 > 0) and ((Next92 = 0) or (Next91 < Next92)) then
-      begin
-
-        FixedCode := FixedCode + Copy(Body, CurrPos, Next91 - CurrPos) + #29 + '91';
-        CurrPos := Next91 + 2;
-
-
-        Next91 := PosEx('91', Body, CurrPos);
-        Next92 := PosEx('92', Body, CurrPos);
-        if (Next91 = 0) and (Next92 = 0) then
-          Next91 := Length(Body) + 1
-        else if (Next91 = 0) then
-          Next91 := Next92
-        else if (Next92 = 0) then
-
-        else if Next92 < Next91 then
-          Next91 := Next92;
-
-        FixedCode := FixedCode + Copy(Body, CurrPos, Next91 - CurrPos);
-        CurrPos := Next91;
+        // Собираем строку:
+        // 1. Часть до 91 (GTIN + серийный номер + данные)
+        // 2. #29 + 91
+        // 3. Данные между 91 и 92
+        // 4. #29 + 92
+        // 5. ВСЕ, что после 92 (хвост)
+        FixedCode := Copy(InputLine, 1, Pos91 - 1) +
+                     #29 + '91' +
+                     Copy(InputLine, Pos91 + 2, Pos92 - (Pos91 + 2)) +
+                     #29 + '92' +
+                     Copy(InputLine, Pos92 + 2, Length(InputLine) - (Pos92 + 1));
       end
       else
       begin
-
-        FixedCode := FixedCode + Copy(Body, CurrPos, Next92 - CurrPos) + #29 + '92';
-        CurrPos := Next92 + 2;
-
-        Next91 := PosEx('91', Body, CurrPos);
-        Next92 := PosEx('92', Body, CurrPos);
-        if (Next91 = 0) and (Next92 = 0) then
-          Next92 := Length(Body) + 1
-        else if (Next92 = 0) then
-          Next92 := Next91
-        else if (Next91 = 0) then
-
-        else if Next91 < Next92 then
-          Next92 := Next91;
-
-        FixedCode := FixedCode + Copy(Body, CurrPos, Next92 - CurrPos);
-        CurrPos := Next92;
+        // Если нет 92, вставляем только перед 91
+        FixedCode := Copy(InputLine, 1, Pos91 - 1) + #29 + '91' + Copy(InputLine, Pos91 + 2, MaxInt);
       end;
+    end
+    else
+    begin
+      // Если нет 91, оставляем как есть
+      FixedCode := InputLine;
     end;
-
-    // Очистка возможных дублей разделителей во входных данных
-    while Pos(#29#29, FixedCode) > 0 do
-      Delete(FixedCode, Pos(#29#29, FixedCode), 1);
-
-    if (Length(FixedCode) > 0) and (FixedCode[Length(FixedCode)] = #29) then
-      SetLength(FixedCode, Length(FixedCode) - 1);
 
     MemoOutput.Lines.Add(FixedCode);
   end;
