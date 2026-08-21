@@ -38,48 +38,27 @@ implementation
 
 procedure TForm1.ButtonConvertClickClick(Sender: TObject);
 var
-  i, Pos91, Pos92: Integer;
-  InputLine, FixedCode: string;
+  i: Integer;
+  InputLine, head, code, tail, FixedCode: string;
 begin
   MemoOutput.Clear;
+
   for i := 0 to MemoInput.Lines.Count - 1 do
   begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
 
-    // Ищем первый "91" начиная с 17-й позиции (после GTIN)
-    Pos91 := PosEx('91', InputLine, 17);
+    // Разбиваем строку
+    head := Copy(InputLine, 1, 19);
+    code := Copy(InputLine, 20, 20);
+    tail := Copy(InputLine, 40, Length(InputLine) - 39); // Или Length(InputLine) - 40 + 1
 
-    if Pos91 > 0 then
-    begin
-      // Ищем первый "92" ПОСЛЕ "91"
-      Pos92 := PosEx('92', InputLine, Pos91 + 2);
+    // Заменяем только в code
+    code := StringReplace(code, '91', #29 + '91', []);
+    code := StringReplace(code, '92', #29 + '92', []);
 
-      if Pos92 > 0 then
-      begin
-        // Собираем строку:
-        // 1. Часть до 91 (GTIN + серийный номер + данные)
-        // 2. #29 + 91
-        // 3. Данные между 91 и 92
-        // 4. #29 + 92
-        // 5. ВСЕ, что после 92 (хвост)
-        FixedCode := Copy(InputLine, 1, Pos91 - 1) +
-                     #29 + '91' +
-                     Copy(InputLine, Pos91 + 2, Pos92 - (Pos91 + 2)) +
-                     #29 + '92' +
-                     Copy(InputLine, Pos92 + 2, Length(InputLine) - (Pos92 + 1));
-      end
-      else
-      begin
-        // Если нет 92, вставляем только перед 91
-        FixedCode := Copy(InputLine, 1, Pos91 - 1) + #29 + '91' + Copy(InputLine, Pos91 + 2, MaxInt);
-      end;
-    end
-    else
-    begin
-      // Если нет 91, оставляем как есть
-      FixedCode := InputLine;
-    end;
+    // Собираем обратно
+    FixedCode := head + code + tail;
 
     MemoOutput.Lines.Add(FixedCode);
   end;
