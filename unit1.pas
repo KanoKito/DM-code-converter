@@ -37,9 +37,22 @@ implementation
 { TForm1 }
 
 procedure TForm1.ConvertLines;
+const
+  // Позиции для короткого кода (с 1)
+  SHORT_PREFIX_END = 24;    // 01(2) + GTIN(14) + 21(2) + сериал(6) = 24
+  SHORT_AI_START = 25;      // Начало AI 93
+  SHORT_AI_LEN = 6;         // 93(2) + ключ(4)
+
+  // Позиции для длинного кода (с 1)
+  LONG_PREFIX_END = 31;     // 01(2) + GTIN(14) + 21(2) + сериал(13) = 31
+  LONG_91_START = 32;       // Начало AI 91
+  LONG_91_LEN = 6;          // 91(2) + ключ(4)
+  LONG_92_START = 38;       // Начало AI 92
+  LONG_92_LEN = 2;          // 92(2)
+  LONG_TAIL_START = 40;     // Начало хвоста (крипто)
 var
   i: Integer;
-  InputLine, head, code, tail, FixedCode: string;
+  InputLine, FixedCode: string;
 begin
   MemoOutput.Clear;
 
@@ -50,14 +63,27 @@ begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
 
-    head := Copy(InputLine, 1, 19);
-    code := Copy(InputLine, 20, 20);
-    tail := Copy(InputLine, 40, MaxInt);
-    //Добавляем служебные символы перед 91 и 92
-    code := StringReplace(code, '91', #29 + '91', []);
-    code := StringReplace(code, '92', #29 + '92', []);
+    if Copy(InputLine, SHORT_AI_START, 2) = '93' then
+    begin
+      // Короткий код: GS перед 93
+      FixedCode := Copy(InputLine, 1, SHORT_PREFIX_END) +
+                   #29 + Copy(InputLine, SHORT_AI_START, SHORT_AI_LEN);
+    end
+    else if Copy(InputLine, LONG_91_START, 2) = '91' then
+    begin
+      // Длинный код: GS перед 91 и перед 92
+      FixedCode :=
+        Copy(InputLine, 1, LONG_PREFIX_END) +
+        #29 + Copy(InputLine, LONG_91_START, LONG_91_LEN) +
+        #29 + Copy(InputLine, LONG_92_START, LONG_92_LEN) +
+        Copy(InputLine, LONG_TAIL_START, MaxInt);
+    end
+    else
+    begin
+      // Неизвестный формат — пропускаем без изменений
+      FixedCode := InputLine;
+    end;
 
-    FixedCode := head + code + tail;
     MemoOutput.Lines.Add(FixedCode);
   end;
 end;
