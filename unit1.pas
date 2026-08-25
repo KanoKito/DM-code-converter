@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, StrUtils;
 
 type
 
@@ -37,22 +37,10 @@ implementation
 { TForm1 }
 
 procedure TForm1.ConvertLines;
-const
-  // Позиции для короткого кода (с 1)
-  SHORT_PREFIX_END = 24;    // 01(2) + GTIN(14) + 21(2) + сериал(6) = 24
-  SHORT_AI_START = 25;      // Начало AI 93
-  SHORT_AI_LEN = 6;         // 93(2) + ключ(4)
-
-  // Позиции для длинного кода (с 1)
-  LONG_PREFIX_END = 31;     // 01(2) + GTIN(14) + 21(2) + сериал(13) = 31
-  LONG_91_START = 32;       // Начало AI 91
-  LONG_91_LEN = 6;          // 91(2) + ключ(4)
-  LONG_92_START = 38;       // Начало AI 92
-  LONG_92_LEN = 2;          // 92(2)
-  LONG_TAIL_START = 40;     // Начало хвоста (крипто)
 var
   i: Integer;
   InputLine, FixedCode: string;
+  Pos21, Pos91, Pos92, Pos93: Integer;
 begin
   MemoOutput.Clear;
 
@@ -63,24 +51,106 @@ begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
 
-    if Copy(InputLine, SHORT_AI_START, 2) = '93' then
+    // ========================================
+    // 1. СПЕЦИАЛЬНЫЕ ФОРМАТЫ (пропускаем)
+    // ========================================
+
+    // Алкоголь, SSCC, КиЗ, АТК, Табак без AI...
+    if Copy(InputLine, 1, 3) = '196' then
     begin
-      // Короткий код: GS перед 93
-      FixedCode := Copy(InputLine, 1, SHORT_PREFIX_END) +
-                   #29 + Copy(InputLine, SHORT_AI_START, SHORT_AI_LEN);
+      FixedCode := InputLine;
     end
-    else if Copy(InputLine, LONG_91_START, 2) = '91' then
+    else if (Length(InputLine) = 20) and (Copy(InputLine, 1, 3) = '001') then
     begin
-      // Длинный код: GS перед 91 и перед 92
-      FixedCode :=
-        Copy(InputLine, 1, LONG_PREFIX_END) +
-        #29 + Copy(InputLine, LONG_91_START, LONG_91_LEN) +
-        #29 + Copy(InputLine, LONG_92_START, LONG_92_LEN) +
-        Copy(InputLine, LONG_TAIL_START, MaxInt);
+      FixedCode := InputLine;
     end
+    else if (Length(InputLine) = 18) and (Copy(InputLine, 1, 1) = '1') then
+    begin
+      FixedCode := InputLine;
+    end
+    else if (Length(InputLine) = 20) and (Copy(InputLine, 3, 1) = '-') then
+    begin
+      FixedCode := InputLine;
+    end
+    else if (Length(InputLine) = 25) and (Copy(InputLine, 13, 1) = '1') then
+    begin
+      FixedCode := InputLine;
+    end
+    else if (Length(InputLine) = 21) and (Copy(InputLine, 1, 14) = StringOfChar('0', 14)) then
+    begin
+      FixedCode := InputLine;
+    end
+    else if (Length(InputLine) = 25) and (Copy(InputLine, 1, 14) = StringOfChar('0', 14)) then
+    begin
+      FixedCode := InputLine;
+    end
+
+    // ========================================
+    // 2. СТАНДАРТНЫЙ GS1 ФОРМАТ (с 01...)
+    // ========================================
+
+    else if Copy(InputLine, 1, 2) = '01' then
+    begin
+      // Находим 21 (начало ИСН)
+      Pos21 := PosEx('21', InputLine, 3);
+
+      if Pos21 > 0 then
+      begin
+        // Ищем 91 после 21
+        Pos91 := PosEx('91', InputLine, Pos21 + 2);
+
+        if Pos91 > 0 then
+        begin
+          // Ищем 92 после 91
+          Pos92 := PosEx('92', InputLine, Pos91 + 2);
+
+          if Pos92 > 0 then
+          begin
+            // Есть 91 и 92 — вставляем #29 перед обоими
+            FixedCode :=
+              Copy(InputLine, 1, Pos91 - 1) + #29 + '91' +
+              Copy(InputLine, Pos91 + 2, Pos92 - (Pos91 + 2)) + #29 + '92' +
+              Copy(InputLine, Pos92 + 2, MaxInt);  // ВАЖНО: сохраняем ВЕСЬ хвост!
+          end
+          else
+          begin
+            // Есть только 91
+            FixedCode :=
+              Copy(InputLine, 1, Pos91 - 1) + #29 + '91' +
+              Copy(InputLine, Pos91 + 2, MaxInt);
+          end;
+        end
+        else
+        begin
+          // Нет 91 — ищем 93
+          Pos93 := PosEx('93', InputLine, Pos21 + 2);
+
+          if Pos93 > 0 then
+          begin
+            FixedCode :=
+              Copy(InputLine, 1, Pos93 - 1) + #29 + '93' +
+              Copy(InputLine, Pos93 + 2, MaxInt);
+          end
+          else
+          begin
+            // Нет AI для вставки
+            FixedCode := InputLine;
+          end;
+        end;
+      end
+      else
+      begin
+        // Нет 21 — некорректный код
+        FixedCode := InputLine;
+      end;
+    end
+
+    // ========================================
+    // 3. НЕИЗВЕСТНЫЙ ФОРМАТ
+    // ========================================
+
     else
     begin
-      // Неизвестный формат — пропускаем без изменений
       FixedCode := InputLine;
     end;
 
