@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, StrUtils;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls;
 
 type
 
@@ -37,10 +37,16 @@ implementation
 { TForm1 }
 
 procedure TForm1.ConvertLines;
+const
+  POS_21 = 17;          // AI 21 всегда на 17-й позиции
+  SHORT_SERIAL = 6;     // Короткий ИСН = 6 символов (1 код страны + 5)
+  LONG_SERIAL = 13;     // Длинный ИСН = 13 символов (1 код страны + 12)
+  RADIO_SERIAL = 20;    // Радиоэлектроника = 20 символов
+  AI_LEN = 2;           // Длина идентификатора (91, 92, 93)
+  KEY_LEN = 4;          // Длина ключа проверки
 var
   i: Integer;
   InputLine, FixedCode: string;
-  Pos21, Pos91, Pos92, Pos93: Integer;
 begin
   MemoOutput.Clear;
 
@@ -50,74 +56,42 @@ begin
   begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
-    // ========================================
-    // 1. СТАНДАРТНЫЙ GS1 ФОРМАТ (с 01...)
-    // ========================================
 
-    if Copy(InputLine, 1, 2) = '01' then
+    // ТОЛЬКО GS1 коды (начинаются с 01, есть 21 на позиции 17)
+    if (Copy(InputLine, 1, 2) = '01') and
+       (Copy(InputLine, POS_21, 2) = '21') then
     begin
-      // Находим 21 (начало ИСН)
-      Pos21 := PosEx('21', InputLine, 3);
-
-      if Pos21 > 0 then
+      // 1. КОРОТКИЙ КОД (ИСН = 6): 93 на позиции 17+2+6 = 25
+      if Copy(InputLine, POS_21 + 2 + SHORT_SERIAL, 2) = '93' then
       begin
-        // Ищем 91 после 21
-        Pos91 := PosEx('91', InputLine, Pos21 + 2);
-
-        if Pos91 > 0 then
-        begin
-          // Ищем 92 после 91
-          Pos92 := PosEx('92', InputLine, Pos91 + 2);
-
-          if Pos92 > 0 then
-          begin
-            // Есть 91 и 92 — вставляем #29 перед обоими
-            FixedCode :=
-              Copy(InputLine, 1, Pos91 - 1) + #29 + '91' +
-              Copy(InputLine, Pos91 + 2, Pos92 - (Pos91 + 2)) + #29 + '92' +
-              Copy(InputLine, Pos92 + 2, MaxInt);  // ВАЖНО: сохраняем ВЕСЬ хвост!
-          end
-          else
-          begin
-            // Есть только 91
-            FixedCode :=
-              Copy(InputLine, 1, Pos91 - 1) + #29 + '91' +
-              Copy(InputLine, Pos91 + 2, MaxInt);
-          end;
-        end
-        else
-        begin
-          // Нет 91 — ищем 93
-          Pos93 := PosEx('93', InputLine, Pos21 + 2);
-
-          if Pos93 > 0 then
-          begin
-            FixedCode :=
-              Copy(InputLine, 1, Pos93 - 1) + #29 + '93' +
-              Copy(InputLine, Pos93 + 2, MaxInt);
-          end
-          else
-          begin
-            // Нет AI для вставки
-            FixedCode := InputLine;
-          end;
-        end;
+        FixedCode :=
+          Copy(InputLine, 1, POS_21 + 2 + SHORT_SERIAL - 1) +
+          #29 + Copy(InputLine, POS_21 + 2 + SHORT_SERIAL, AI_LEN + KEY_LEN) +
+          Copy(InputLine, POS_21 + 2 + SHORT_SERIAL + AI_LEN + KEY_LEN, MaxInt);
+      end
+      // 2. ДЛИННЫЙ КОД (ИСН = 13): 91 на позиции 17+2+13 = 32
+      else if Copy(InputLine, POS_21 + 2 + LONG_SERIAL, 2) = '91' then
+      begin
+        FixedCode :=
+          Copy(InputLine, 1, POS_21 + 2 + LONG_SERIAL - 1) +
+          #29 + Copy(InputLine, POS_21 + 2 + LONG_SERIAL, AI_LEN + KEY_LEN) +
+          #29 + Copy(InputLine, POS_21 + 2 + LONG_SERIAL + AI_LEN + KEY_LEN, 2) +
+          Copy(InputLine, POS_21 + 2 + LONG_SERIAL + AI_LEN + KEY_LEN + 2, MaxInt);
+      end
+      // 3. РАДИОЭЛЕКТРОНИКА (ИСН = 20): 91 на позиции 17+2+20 = 39
+      else if Copy(InputLine, POS_21 + 2 + RADIO_SERIAL, 2) = '91' then
+      begin
+        FixedCode :=
+          Copy(InputLine, 1, POS_21 + 2 + RADIO_SERIAL - 1) +
+          #29 + Copy(InputLine, POS_21 + 2 + RADIO_SERIAL, AI_LEN + KEY_LEN) +
+          #29 + Copy(InputLine, POS_21 + 2 + RADIO_SERIAL + AI_LEN + KEY_LEN, 2) +
+          Copy(InputLine, POS_21 + 2 + RADIO_SERIAL + AI_LEN + KEY_LEN + 2, MaxInt);
       end
       else
-      begin
-        // Нет 21 — некорректный код
-        FixedCode := InputLine;
-      end;
+        FixedCode := InputLine; // неизвестный формат
     end
-
-    // ========================================
-    // 2. НЕИЗВЕСТНЫЙ ФОРМАТ
-    // ========================================
-
     else
-    begin
-      FixedCode := InputLine;
-    end;
+      FixedCode := InputLine; // не GS1 код
 
     MemoOutput.Lines.Add(FixedCode);
   end;
