@@ -50,46 +50,11 @@ begin
   begin
     InputLine := Trim(MemoInput.Lines[i]);
     if InputLine = '' then Continue;
-
     // ========================================
-    // 1. СПЕЦИАЛЬНЫЕ ФОРМАТЫ (пропускаем)
-    // ========================================
-
-    // Алкоголь, SSCC, КиЗ, АТК, Табак без AI...
-    if Copy(InputLine, 1, 3) = '196' then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 20) and (Copy(InputLine, 1, 3) = '001') then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 18) and (Copy(InputLine, 1, 1) = '1') then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 20) and (Copy(InputLine, 3, 1) = '-') then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 25) and (Copy(InputLine, 13, 1) = '1') then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 21) and (Copy(InputLine, 1, 14) = StringOfChar('0', 14)) then
-    begin
-      FixedCode := InputLine;
-    end
-    else if (Length(InputLine) = 25) and (Copy(InputLine, 1, 14) = StringOfChar('0', 14)) then
-    begin
-      FixedCode := InputLine;
-    end
-
-    // ========================================
-    // 2. СТАНДАРТНЫЙ GS1 ФОРМАТ (с 01...)
+    // 1. СТАНДАРТНЫЙ GS1 ФОРМАТ (с 01...)
     // ========================================
 
-    else if Copy(InputLine, 1, 2) = '01' then
+    if Copy(InputLine, 1, 2) = '01' then
     begin
       // Находим 21 (начало ИСН)
       Pos21 := PosEx('21', InputLine, 3);
@@ -146,7 +111,7 @@ begin
     end
 
     // ========================================
-    // 3. НЕИЗВЕСТНЫЙ ФОРМАТ
+    // 2. НЕИЗВЕСТНЫЙ ФОРМАТ
     // ========================================
 
     else
