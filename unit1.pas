@@ -5,18 +5,22 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Clipbrd;
 
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
+    BtnCopy: TButton;
     ButtonExportCSVClick: TButton;
     ButtonConvertClick: TButton;
+    Label1: TLabel;
+    Label2: TLabel;
     MemoInput: TMemo;
     MemoOutput: TMemo;
     SaveDialog1: TSaveDialog;
+    procedure BtnCopyClick(Sender: TObject);
     procedure ButtonConvertClickClick(Sender: TObject);
     procedure ButtonExportCSVClickClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -103,6 +107,12 @@ begin
   ShowMessage('Конвертация выполнена!');
 end;
 
+procedure TForm1.BtnCopyClick(Sender: TObject);
+begin
+  Clipboard.AsText := MemoOutput.Lines.Text;
+  ShowMessage('Результат скопирован в буфер обмена');
+end;
+
 procedure TForm1.ButtonExportCSVClickClick(Sender: TObject);
 var
   sl: TStringList;
@@ -155,6 +165,8 @@ begin
   Constraints.MinHeight := Height;
   Constraints.MaxHeight := Height;
 end;
+
+
 
 procedure TForm1.MemoInputChange(Sender: TObject);
 begin
