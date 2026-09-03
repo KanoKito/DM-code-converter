@@ -1,17 +1,17 @@
 object Form1: TForm1
   Left = 323
-  Height = 484
+  Height = 506
   Top = 250
   Width = 1238
   Caption = 'Конвертер кодов DM '
-  ClientHeight = 484
+  ClientHeight = 506
   ClientWidth = 1238
   LCLVersion = '4.8.0.0'
   OnCreate = FormCreate
   object MemoInput: TMemo
     Left = 16
     Height = 432
-    Top = 10
+    Top = 24
     Width = 600
     Lines.Strings = (
       'MemoInput'
@@ -23,31 +23,55 @@ object Form1: TForm1
   object ButtonConvertClick: TButton
     Left = 16
     Height = 25
-    Top = 448
+    Top = 464
     Width = 107
     Caption = 'Конвертировать'
     TabOrder = 1
     OnClick = ButtonConvertClickClick
   end
   object MemoOutput: TMemo
-    Left = 632
+    Left = 624
     Height = 432
-    Top = 10
+    Top = 24
     Width = 600
     Lines.Strings = (
       'MemoOutput'
     )
+    ReadOnly = True
     ScrollBars = ssAutoBoth
     TabOrder = 2
   end
   object ButtonExportCSVClick: TButton
-    Left = 136
+    Left = 128
     Height = 25
-    Top = 448
+    Top = 464
     Width = 104
     Caption = 'Сохранить в CSV'
     TabOrder = 3
     OnClick = ButtonExportCSVClickClick
+  end
+  object Label1: TLabel
+    Left = 23
+    Height = 15
+    Top = 8
+    Width = 98
+    Caption = 'Поле ввода кодов'
+  end
+  object Label2: TLabel
+    Left = 632
+    Height = 15
+    Top = 8
+    Width = 127
+    Caption = 'Результат конвертации'
+  end
+  object BtnCopy: TButton
+    Left = 624
+    Height = 25
+    Top = 464
+    Width = 96
+    Caption = 'Копировать'
+    TabOrder = 4
+    OnClick = BtnCopyClick
   end
   object SaveDialog1: TSaveDialog
     Left = 1496
