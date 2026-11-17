@@ -156,7 +156,12 @@ begin
   SaveDialog1.DefaultExt := 'csv';
 
   MemoOutput.Clear;
+  MemoOutput.WordWrap := False;
+  MemoOutput.ScrollBars := ssBoth;
+
   MemoInput.Clear;
+  MemoInput.WordWrap := False;
+  MemoInput.ScrollBars := ssBoth;
 
   BorderStyle := bsSingle;
   BorderIcons := BorderIcons - [biMaximize];
